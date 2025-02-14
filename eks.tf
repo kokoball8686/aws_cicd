@@ -2,7 +2,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 19.0"
 
-  cluster_name    = "cicd-cluster-v1"
+  cluster_name    = "cicd-cluster-v2"
   cluster_version = "1.27"
 
   vpc_id     = module.vpc.vpc_id
@@ -20,12 +20,8 @@ module "eks" {
       disk_size    = 20
       capacity_type = "ON_DEMAND"
       
-      remote_access = {
-        ec2_ssh_key = aws_key_pair.cicd_key.key_name
-      }
-      
       tags = {
-        "kubernetes.io/cluster/cicd-cluster-v1" = "owned"
+        "kubernetes.io/cluster/cicd-cluster-v2" = "owned"
         Environment = "dev"
         Terraform   = "true"
       }

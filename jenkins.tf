@@ -97,6 +97,58 @@ resource "aws_instance" "jenkins" {
               sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
               sudo yum install -y jenkins
 
+              # Jenkins 초기 설정 디렉토리 생성
+              sudo mkdir -p /var/lib/jenkins/init.groovy.d
+              sudo chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d
+
+              # Jenkins 초기 설정 스크립트 생성
+              cat <<EOG > /var/lib/jenkins/init.groovy.d/basic-security.groovy
+              import jenkins.model.*
+              import hudson.security.*
+              import jenkins.install.InstallState
+
+              def instance = Jenkins.getInstance()
+
+              def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+              hudsonRealm.createAccount("admin", "admin123!")
+              instance.setSecurityRealm(hudsonRealm)
+
+              def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+              strategy.setAllowAnonymousRead(false)
+              instance.setAuthorizationStrategy(strategy)
+
+              instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
+
+              instance.save()
+              EOG
+
+              # Jenkins 플러그인 설치 준비
+              JENKINS_HOME="/var/lib/jenkins"
+              JENKINS_UC="https://updates.jenkins.io"
+              JENKINS_UC_DOWNLOAD="${JENKINS_UC}/download"
+              JENKINS_PLUGINS_DIR="${JENKINS_HOME}/plugins"
+
+              sudo mkdir -p ${JENKINS_PLUGINS_DIR}
+              sudo chown -R jenkins:jenkins ${JENKINS_PLUGINS_DIR}
+
+              # 필수 플러그인 설치
+              JENKINS_PLUGINS=(
+                "git"
+                "github"
+                "workflow-aggregator"
+                "kubernetes"
+                "kubernetes-cli"
+                "docker-workflow"
+                "pipeline-aws"
+              )
+
+              for plugin in "${JENKINS_PLUGINS[@]}"; do
+                curl -L --silent --output "${JENKINS_PLUGINS_DIR}/${plugin}.hpi" \
+                  "${JENKINS_UC_DOWNLOAD}/latest/${plugin}.hpi"
+              done
+
+              sudo chown -R jenkins:jenkins ${JENKINS_PLUGINS_DIR}
+
               # kubectl 설치
               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
               sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
@@ -109,7 +161,7 @@ resource "aws_instance" "jenkins" {
               rm -rf aws awscliv2.zip
 
               # EKS 클러스터 설정
-              aws eks update-kubeconfig --region ap-northeast-2 --name cicd-cluster-v1
+              aws eks update-kubeconfig --region ap-northeast-2 --name cicd-cluster-v2
 
               # kubectl 설정 파일 권한 설정
               sudo mkdir -p /var/lib/jenkins/.kube
@@ -144,7 +196,7 @@ resource "aws_instance" "jenkins" {
 
               # Jenkins 초기 비밀번호 출력
               echo "Jenkins initial admin password:"
-              sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+              echo "admin123!"
 
               # ArgoCD 초기 비밀번호 출력 (60초 대기 후)
               sleep 60

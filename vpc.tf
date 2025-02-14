@@ -19,7 +19,7 @@ module "vpc" {
   enable_dns_support   = true
 
   tags = {
-    "kubernetes.io/cluster/cicd-cluster-v1" = "shared"
+    "kubernetes.io/cluster/cicd-cluster-v2" = "shared"
     Environment = "dev"
     Terraform   = "true"
   }
