@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pika-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pika
+  template:
+    metadata:
+      labels:
+        app: pika
+    spec:
+      containers:
+      - name: pika
+        image: kokoball8686/pika:latest
+        ports:
+        - containerPort: 80 
