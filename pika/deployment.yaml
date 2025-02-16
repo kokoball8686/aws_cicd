@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: pika
-        image: kokoball8686/pika:93
+        image: kokoball8686/pika:94
         ports:
         - containerPort: 80 
